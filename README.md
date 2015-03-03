@@ -18,9 +18,7 @@ To install, follow these simple steps:
     ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyftp  
     ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyrdp  
     ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyvnc  
-
 4. Copy the exampele proxies.cnf into your home directory as a 'hidden' file:  
     cp [INSTALL_DIR]/proxies.cnf ${HOME}/.proxies.cnf  
-
 5. Customize the configuration file, following the examples.  
 6. run one of the scripts with the "-L" option to validate that all the services are showing up correctly 
