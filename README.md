@@ -10,17 +10,17 @@ The following services are currently supported:
 4. VNC remote desktop  
 
 
-To install, follow these simple steps:
-1. Clone the GIT repository onto your system
-1. Move the 'proxyapp' into your preferred 'bin' directory (PATH-findable)  (OPTIONAL)
-2. Create symlinks to the proxyapp script:  
-    ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyssh
-    ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyftp
-    ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyrdp
-    ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyvnc
+To install, follow these simple steps:  
+1. Clone the GIT repository onto your system  
+2. Move the 'proxyapp' into your preferred 'bin' directory (PATH-findable)  (OPTIONAL)  
+3. Create symlinks to the proxyapp script:  
+    ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyssh  
+    ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyftp  
+    ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyrdp  
+    ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyvnc  
 
-3. Copy the exampele proxies.cnf into your home directory as a 'hidden' file:  
-    cp [INSTALL_DIR]/proxies.cnf ${HOME}/.proxies.cnf
+4. Copy the exampele proxies.cnf into your home directory as a 'hidden' file:  
+    cp [INSTALL_DIR]/proxies.cnf ${HOME}/.proxies.cnf  
 
-4. Customize the configuration file, following the examples.
-5. run one of the scripts with the "-L" option to validate that all the services are showing up correctly
+5. Customize the configuration file, following the examples.  
+6. run one of the scripts with the "-L" option to validate that all the services are showing up correctly 
