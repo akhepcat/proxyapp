@@ -1,0 +1,23 @@
+# proxy list for letsftp or proxyssh
+
+IDX=$((IDX + 1))
+NAME[$IDX]="foo"			# A short name to identify the proxy service
+DEST[$IDX]="foobar.example.net"		# the final destination host (name or ip)
+PHOST[$IDX]="bastian.example.net"	# the ssh proxy/bastian host
+PUSER[$IDX]="alice"			# username for the proxy host
+RUSER[$IDX]="alice"			# username for the destination host
+VNCUSER[$IDX]=""			# username for the remote VNC service
+RDPUSER[$IDX]=""			# username for the remote Microsoft RDP service
+DOMAIN[$IDX]=""				# microsoft domain name for the remote RDP service
+##
+
+IDX=$((IDX + 1))
+NAME[$IDX]="deadbeef"
+DEST[$IDX]="[2002::dead:beef]"
+PHOST[$IDX]="[2001::1bad:cafe]"
+PUSER[$IDX]="bob"
+RUSER[$IDX]="charlesr"
+VNCUSER[$IDX]="rcharles"
+RDPUSER[$IDX]="rcharles"
+DOMAIN[$IDX]="BadCafe"
+##

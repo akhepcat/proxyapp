@@ -1,0 +1,209 @@
+#!/bin/bash
+#########################################################
+PROG="${0##*/}"
+APP="${PROG//proxy}"  # we're called proxy[xxx]  or..
+APP="${PROG//lets}"  # we're called lets[xxx]  or
+
+MYHOST="$(uname -n)"
+
+#
+LUSER="$(whoami)"
+
+DO_RETURN=${SHLVL}
+
+#############################
+
+do_exit()
+{
+        STATUS=${1:-0}
+        REASON=${2}
+
+        [[ -n "${REASON}" ]] && echo "${REASON}"
+
+        [[ ${DO_RETURN} -eq 1 ]] && return $STATUS || exit $STATUS
+}
+
+usage() {
+	echo "${PROG} [-p port] [-u user] [-P proxy_host] [-U proxy_user] destination"
+	echo ""
+	echo "        -p port           port to use for tunnel between localhost and proxy (default is ${PORT})"
+	echo "        -P proxy_host     user specific host as ssh bounce"
+	echo "        -U proxy_user     username to log into proxy_host as (default is ${LUSER})"
+	echo "        -u user           username to log into destination (default is ${LUSER})"
+	echo "        -f fullscreen     vnc/rdesktop proxies use the full screen"
+	echo "        -l                list available proxies for ${APP}"
+	echo "        -L                list all available proxies"
+	echo "        destination       final destination host"
+	echo ""
+	echo "        will read from \$HOME/.proxies.cnf for preconfigured proxies based on destination match"
+
+	do_exit 0
+}
+
+list_proxies() {
+
+	[[ -z "${1//short}" ]] && FILTER=${APP} || FILTER="long"
+
+	COL1="Index" 
+	COL2="Alias"
+	COL3="Dest"
+	COL4="Proxy"
+	if [ "${FILTER}" = "long" ]
+	then
+		COL5="SSH"
+		COL6="RDP"
+		COL7="VNC"
+	else
+		COL5=""
+		COL6=""
+		COL7=""
+	fi
+	PAD1='          ' # 10 chars for padding indexes
+	PAD2='                    ' # 20 chars for padding hosts
+
+	printf "%s %s %s %s %s %s %s %s %s %s %s %s %s %s\n"  \
+		$COL1 "${PAD1:${#COL1}}" \
+		$COL2 "${PAD2:${#COL2}}" \
+		$COL3 "${PAD2:${#COL3}}" \
+		$COL4 "${PAD2:${#COL4}}" \
+		$COL5 "${PAD1:${#COL5}}" \
+		$COL6 "${PAD1:${#COL6}}" \
+		$COL7 "${PAD1:${#COL7}}"
+
+	for (( i = 1 ; i <= $IDX ; i++ ))
+	do
+		nicehost=${NAME[$i]}
+		nicedest=${DEST[$i]}
+		niceproxy=${PHOST[$i]}
+		ssh='y'
+		[[ -n "${VNCUSER[$i]}" ]] && vnc="y" || vnc=' '
+		[[ -n "${RDPUSER[$i]}" ]] && rdp="y" || rdp=' '
+		
+		if [ "${FILTER}" = "long" ]
+		then
+		    printf "%s %s %s %s %s %s %s %s %s %s %s %s %s %s\n"  \
+			${i} "${PAD1:${#i}}" \
+			$nicehost "${PAD2:${#nicehost}}" \
+			$nicedest "${PAD2:${#nicedest}}" \
+			$niceproxy "${PAD2:${#niceproxy}}" \
+			"$ssh" "${PAD1:${#ssh}}" \
+			"$rdp" "${PAD1:${#rdp}}" \
+			"$vnc" "${PAD1:${#vnc}}"
+		elif [ "${FILTER}" != "long" -a "${!FILTER}" = "y" ]
+		then
+		    printf "%s %s %s %s %s %s %s %s\n"  \
+			${i} "${PAD1:${#i}}" \
+			$nicehost "${PAD2:${#nicehost}}" \
+			$nicedest "${PAD2:${#nicedest}}" \
+			$niceproxy "${PAD2:${#niceproxy}}"
+		fi
+	done
+
+	do_exit 0
+}
+
+[[ -r ${HOME}/.proxies.cnf ]] && . ${HOME}/.proxies.cnf
+
+while getopts ":u:p:U:P:flL" param; do
+ case $param in
+  u) user=$OPTARG ;;
+  U) puser="$TITLE $OPTARG" ;;
+  f) FULLSCREEN=1 ;;
+  p) PORT=$OPTARG ;;
+  P) phost=$OPTARG ;;
+  l) list_proxies "short";;
+  L) list_proxies "long" ;;
+  *) usage; exit 1;;
+ esac
+done
+
+MyINTv4=$(awk 'BEGIN { IGNORECASE=1 } /^[a-z0-9]+[ \t]+00000000/ { print $1 }' /proc/net/route)
+[[ -z "${MyINTv4}" ]] && do_exit 1 "No network connectivity"
+
+if [ -z "${APP##*rdp*}" -o -z "${APP##*rdesktop*}" ]
+then
+	RPORT=3389
+	LPORT=${RPORT}
+	RDPV=$(which rdesktop-vrdp)
+	RDP=$(which rdesktop)
+	RDP=${RDP:-$RDPV}
+	RDP=${RDP:-echo rdp-missing}
+	APP="rdp"
+
+elif [ -z "${APP##*vnc*}" ]
+then
+	RPORT=5900
+	LPORT=${RPORT}
+	APP="vnc"
+
+elif [ -z "${APP##*ssh*}" -o -z "${APP##*ftp*}" -o -z "${APP##*cp*}" ]
+then
+	RPORT=22
+	LPORT=22000
+else
+	do_exit 1 "unknown proxy application linking"	
+fi
+LPORT=$(portfind ${LPORT})
+
+fullscreen=""
+if [ -z "${APP##*rdp*}" ]
+then
+	[[ ${FULLSCREEN:-0} -eq 1 ]] && fullscreen="-f"
+	SIZE="-g $(rdpgeometry ${fullscreen})"
+	
+elif [ -z "${APP##*vnc*}" ]
+then
+	[[ ${FULLSCREEN:-0} -eq 1 ]] && fullscreen="-f"
+	#SIZE="-g $(rdpgeometry ${fullscreen})"
+	SIZE=""	# VNC (tightvnc) doesn't support client-based geometry locking
+else
+	SIZE=""
+	fullscreen=""
+fi
+
+RDEST="${!OPTIND}"
+if [ -z "${RDEST}" ];
+then
+	echo "invalid/unknown destination"
+	usage
+	exit 1
+fi
+
+for (( i = 1 ; i <= $IDX ; i++ ))
+do
+	LDEST=${DEST[$i]}
+	[[ -z "${LDEST##*$RDEST*}" ]] && FOUND=1 && break
+done
+
+if [[ ${FOUND:-0} -eq 1 ]]
+then
+	user=${RUSER[$i]}
+	puser=${PUSER[$i]}
+	phost=${PHOST[$i]}
+	dest=${DEST[$i]}
+else
+	[[ -z "$user" ]] && do_exit 1 "remote user not specified"
+	[[ -z "$puser" ]] && do_exit 1 "proxy user not specified"
+	[[ -z "$phost" ]] && do_exit 1 "proxy host not specified"
+fi
+
+echo "STATUS: Building ${APP} Tunnel on port ${PORT} from ${MYHOST} to ${user}@${dest} via ${puser}@${phost}..."
+
+ssh -x -f -L ${PORT}:${dest}:22 ${puser}@${phost} "sleep 15" 
+STATUS=$?
+
+if [ $? -eq 0 ]
+then
+
+case ${APP} in
+	ssh) ssh -p ${PORT} ${user}@localhost
+	     ;;
+	ftp) sftp -oPort=${PORT} ${user}@localhost
+	     ;;
+	rdp|rdesktop) $RDP -x 1 -z ${fullscreen} ${SIZE} -u $ruser -d ${domain}  localhost:${LPORT}
+	     ;;
+	vnc) vncviewer ${fullscreen} -owncmap -depth 8 -encodings "tight" -compresslevel 9 -quality 3 localhost:${VPORT}
+
+	*) do_exit 1 "unsupported proxied application \"${APP}\" "
+	     ;;
+esac
