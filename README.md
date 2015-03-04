@@ -16,6 +16,7 @@ To install, follow these simple steps:
 3. Create symlinks to the proxyapp script:  
     ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyssh  
     ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyftp  
+    ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyscp  
     ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyrdp  
     ln -s [INSTALL_DIR]/proxyapp /usr/local/bin/proxyvnc  
 4. Copy the exampele proxies.cnf into your home directory as a 'hidden' file:  
