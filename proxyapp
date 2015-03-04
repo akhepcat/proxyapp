@@ -162,6 +162,11 @@ else
 fi
 
 RDEST="${!OPTIND}"
+FILE="$*"
+FILE="${FILE%%* }"
+FILE="${FILE//$RDEST/}"
+FILE="${FILE// ]"
+
 if [ -z "${RDEST}" ];
 then
 	echo "invalid/unknown destination"
@@ -198,6 +203,8 @@ then
 	ssh) echo "opening ssh without host-checking to ${dest}" && ssh -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -E /dev/null -k -p ${LPORT} ${user}@localhost
 	     ;;
 	ftp) echo "opening sftp without host-checking to ${dest}" && sftp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost
+	     ;;
+	scp) echo "opening scp without host-checking to ${dest}" && scp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:"${FILE}" .
 	     ;;
 	rdp|rdesktop) $RDP -x 1 -z ${fullscreen} ${SIZE} -u $ruser -d ${domain}  localhost:${LPORT}
 	     ;;
