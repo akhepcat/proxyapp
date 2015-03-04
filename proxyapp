@@ -195,9 +195,9 @@ STATUS=$?
 if [ $? -eq 0 ]
 then
     case ${APP} in
-	ssh) ssh -p ${LPORT} ${user}@localhost
+	ssh) echo "opening ssh without host-checking to ${dest}" && ssh -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -E /dev/null -k -p ${LPORT} ${user}@localhost
 	     ;;
-	ftp) sftp -oPort=${LPORT} ${user}@localhost
+	ftp) echo "opening sftp without host-checking to ${dest}" && sftp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost
 	     ;;
 	rdp|rdesktop) $RDP -x 1 -z ${fullscreen} ${SIZE} -u $ruser -d ${domain}  localhost:${LPORT}
 	     ;;
@@ -209,3 +209,4 @@ then
 else
 	do_exit 1 "unable to connect to ${phost}"
 fi
+
