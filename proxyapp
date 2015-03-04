@@ -171,7 +171,7 @@ fi
 
 for (( i = 1 ; i <= $IDX ; i++ ))
 do
-	LDEST=${DEST[$i]}
+	LDEST=${NAME[$i]}
 	[[ -z "${LDEST##*$RDEST*}" ]] && FOUND=1 && break
 done
 
@@ -187,23 +187,25 @@ else
 	[[ -z "$phost" ]] && do_exit 1 "proxy host not specified"
 fi
 
-echo "STATUS: Building ${APP} Tunnel on port ${PORT} from ${MYHOST} to ${user}@${dest} via ${puser}@${phost}..."
+echo "STATUS: Building ${APP} Tunnel from ${MYHOST}:${LPORT} to ${user}@${dest}:${RPORT} via ${puser}@${phost}..."
 
-ssh -x -f -L ${PORT}:${dest}:22 ${puser}@${phost} "sleep 15" 
+ssh -x -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "sleep 15" 
 STATUS=$?
 
 if [ $? -eq 0 ]
 then
-
-case ${APP} in
-	ssh) ssh -p ${PORT} ${user}@localhost
+    case ${APP} in
+	ssh) ssh -p ${LPORT} ${user}@localhost
 	     ;;
-	ftp) sftp -oPort=${PORT} ${user}@localhost
+	ftp) sftp -oPort=${LPORT} ${user}@localhost
 	     ;;
 	rdp|rdesktop) $RDP -x 1 -z ${fullscreen} ${SIZE} -u $ruser -d ${domain}  localhost:${LPORT}
 	     ;;
-	vnc) vncviewer ${fullscreen} -owncmap -depth 8 -encodings "tight" -compresslevel 9 -quality 3 localhost:${VPORT}
-
+	vnc) vncviewer ${fullscreen} -owncmap -depth 8 -encodings "tight" -compresslevel 9 -quality 3 localhost:${LPORT}
+	     ;;
 	*) do_exit 1 "unsupported proxied application \"${APP}\" "
 	     ;;
-esac
+    esac
+else
+	do_exit 1 "unable to connect to ${phost}"
+fi
