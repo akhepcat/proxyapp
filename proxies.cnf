@@ -9,6 +9,7 @@ RUSER[$IDX]="alice"			# username for the destination host
 VNCUSER[$IDX]=""			# username for the remote VNC service
 RDPUSER[$IDX]=""			# username for the remote Microsoft RDP service
 DOMAIN[$IDX]=""				# microsoft domain name for the remote RDP service
+PCMD[$IDX]=""				# a custom command to run on the proxy-host
 ##
 
 IDX=$((IDX + 1))
@@ -20,4 +21,5 @@ RUSER[$IDX]="charlesr"
 VNCUSER[$IDX]="rcharles"
 RDPUSER[$IDX]="rcharles"
 DOMAIN[$IDX]="BadCafe"
+PCMD[$IDX]="ssh -Y ${RUSER[$IDX]}@${DEST[$IDX]} 'enable_rdp_through_firewall_script.sh'"
 ##
