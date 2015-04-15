@@ -148,8 +148,12 @@ LPORT=$(portfind ${LPORT})
 fullscreen=""
 if [ -z "${APP##*rdp*}" ]
 then
-	[[ ${FULLSCREEN:-0} -eq 1 ]] && fullscreen="-f"
-	SIZE="-g $(rdpgeometry ${fullscreen})"
+	if [ ${FULLSCREEN:-0} -eq 1 ]
+	then
+		fullscreen="-f -D"
+	else
+		SIZE="-g $(rdpgeometry)"
+	fi
 	
 elif [ -z "${APP##*vnc*}" ]
 then
@@ -165,7 +169,7 @@ RDEST="${!OPTIND}"
 FILE="$*"
 FILE="${FILE%%* }"
 FILE="${FILE//$RDEST/}"
-FILE="${FILE// ]"
+FILE="${FILE// }"
 
 if [ -z "${RDEST}" ];
 then
@@ -186,6 +190,10 @@ then
 	puser=${PUSER[$i]}
 	phost=${PHOST[$i]}
 	dest=${DEST[$i]}
+	pcmd=${PCMD[$i]}
+	rdpu=${RDPUSER[$i]}
+	vncu=${VNCUSER[$i]}
+	domain=${DOMAIN[$i]}
 else
 	[[ -z "$user" ]] && do_exit 1 "remote user not specified"
 	[[ -z "$puser" ]] && do_exit 1 "proxy user not specified"
@@ -194,8 +202,17 @@ fi
 
 echo "STATUS: Building ${APP} Tunnel from ${MYHOST}:${LPORT} to ${user}@${dest}:${RPORT} via ${puser}@${phost}..."
 
-ssh -x -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "sleep 15" 
+pcmd=${pcmd:-sleep 15}
+FX=${pcmd:+-Y}
+
+ssh ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}" 
 STATUS=$?
+
+if [ -n "${pcmd##*sleep*}" ]
+then
+	#if we're chaining an SSH via $pcmd, we need to sleep a bit before the final hop
+	sleep 10
+fi
 
 if [ $? -eq 0 ]
 then
@@ -206,7 +223,7 @@ then
 	     ;;
 	scp) echo "opening scp without host-checking to ${dest}" && scp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:"${FILE}" .
 	     ;;
-	rdp|rdesktop) $RDP -x 1 -z ${fullscreen} ${SIZE} -u $ruser -d ${domain}  localhost:${LPORT}
+	rdp|rdesktop) $RDP -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}
 	     ;;
 	vnc) vncviewer ${fullscreen} -owncmap -depth 8 -encodings "tight" -compresslevel 9 -quality 3 localhost:${LPORT}
 	     ;;
