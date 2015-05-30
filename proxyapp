@@ -157,7 +157,7 @@ then
 	
 elif [ -z "${APP##*vnc*}" ]
 then
-	[[ ${FULLSCREEN:-0} -eq 1 ]] && fullscreen="-f"
+	[[ ${FULLSCREEN:-0} -eq 1 ]] && fullscreen="-fullscreen"
 	#SIZE="-g $(rdpgeometry ${fullscreen})"
 	SIZE=""	# VNC (tightvnc) doesn't support client-based geometry locking
 else
