@@ -31,8 +31,10 @@ usage() {
 	echo "        -U proxy_user     username to log into proxy_host as (default is ${LUSER})"
 	echo "        -u user           username to log into destination (default is ${LUSER})"
 	echo "        -f fullscreen     vnc/rdesktop proxies use the full screen"
+	echo "        -D display#       use non-default VNC display #"
 	echo "        -l                list available proxies for ${APP}"
 	echo "        -L                list all available proxies"
+	echo "        -v                verbosely show the commands"
 	echo "        destination       final destination host"
 	echo ""
 	echo "        will read from \$HOME/.proxies.cnf for preconfigured proxies based on destination match"
@@ -104,7 +106,7 @@ list_proxies() {
 
 [[ -r ${HOME}/.proxies.cnf ]] && . ${HOME}/.proxies.cnf
 
-while getopts ":u:p:U:P:flL" param; do
+while getopts ":u:p:U:P:flLvD:" param; do
  case $param in
   u) user=$OPTARG ;;
   U) puser="$TITLE $OPTARG" ;;
@@ -113,6 +115,8 @@ while getopts ":u:p:U:P:flL" param; do
   P) phost=$OPTARG ;;
   l) list_proxies "short";;
   L) list_proxies "long" ;;
+  v) VERBOSE=1 ;;
+  D) DISP=$OPTARG ;;
   *) usage; exit 1;;
  esac
 done
@@ -132,7 +136,7 @@ then
 
 elif [ -z "${APP##*vnc*}" ]
 then
-	RPORT=5900
+	RPORT=$((5900 + ${DISP:-0}))
 	LPORT=${RPORT}
 	APP="vnc"
 
@@ -205,6 +209,7 @@ echo "STATUS: Building ${APP} Tunnel from ${MYHOST}:${LPORT} to ${user}@${dest}:
 pcmd=${pcmd:-sleep 15}
 FX=${pcmd:+-Y}
 
+[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}'"
 ssh ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}" 
 STATUS=$?
 
@@ -217,19 +222,23 @@ fi
 if [ $? -eq 0 ]
 then
     case ${APP} in
-	ssh) echo "opening ssh without host-checking to ${dest}" && ssh -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -E /dev/null -k -p ${LPORT} ${user}@localhost
+	ssh) echo "opening ssh without host-checking to ${dest}" && DO_CMD="ssh -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -E /dev/null -k -p ${LPORT} ${user}@localhost"
 	     ;;
-	ftp) echo "opening sftp without host-checking to ${dest}" && sftp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost
+	ftp) echo "opening sftp without host-checking to ${dest}" && DO_CMD="sftp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost"
 	     ;;
-	scp) echo "opening scp without host-checking to ${dest}" && scp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:"${FILE}" .
+	scp) echo "opening scp without host-checking to ${dest}" && DO_CMD="scp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:\"${FILE}\" ."
 	     ;;
-	rdp|rdesktop) $RDP -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}
+	rdp|rdesktop) DO_CMD="$RDP -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
 	     ;;
-	vnc) vncviewer ${fullscreen} -owncmap -depth 8 -encodings "tight" -compresslevel 9 -quality 3 localhost:${LPORT}
+	vnc) DO_CMD="vncviewer ${fullscreen} -owncmap -depth 8 -encodings \"tight\" -compresslevel 9 -quality 3 localhost:${LPORT}"
 	     ;;
 	*) do_exit 1 "unsupported proxied application \"${APP}\" "
 	     ;;
     esac
+
+    [[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ${DO_CMD}"
+    $DO_CMD
+
 else
 	do_exit 1 "unable to connect to ${phost}"
 fi
