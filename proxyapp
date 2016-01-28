@@ -4,6 +4,8 @@ PROG="${0##*/}"
 APP="${PROG//proxy}"  # we're called proxy[xxx]  or..
 APP="${PROG//lets}"  # we're called lets[xxx]  or
 
+TO="-o ConnectTimeout=15"
+
 MYHOST="$(uname -n)"
 
 #
@@ -11,6 +13,8 @@ LUSER="$(whoami)"
 
 DO_RETURN=${SHLVL}
 
+
+RDPOPTS="-b -B -C -P"
 #############################
 
 do_exit()
@@ -31,10 +35,12 @@ usage() {
 	echo "        -U proxy_user     username to log into proxy_host as (default is ${LUSER})"
 	echo "        -u user           username to log into destination (default is ${LUSER})"
 	echo "        -f fullscreen     vnc/rdesktop proxies use the full screen"
+	echo "        -g geometry       force specific geometry for vnc/rdesktop"
 	echo "        -D display#       use non-default VNC display #"
 	echo "        -l                list available proxies for ${APP}"
 	echo "        -L                list all available proxies"
 	echo "        -v                verbosely show the commands"
+	echo "        -W                hide window-manager decorations"
 	echo "        destination       final destination host"
 	echo ""
 	echo "        will read from \$HOME/.proxies.cnf for preconfigured proxies based on destination match"
@@ -106,7 +112,7 @@ list_proxies() {
 
 [[ -r ${HOME}/.proxies.cnf ]] && . ${HOME}/.proxies.cnf
 
-while getopts ":u:p:U:P:flLvD:" param; do
+while getopts ":u:p:U:P:flLvWD:g:" param; do
  case $param in
   u) user=$OPTARG ;;
   U) puser="$TITLE $OPTARG" ;;
@@ -117,6 +123,8 @@ while getopts ":u:p:U:P:flLvD:" param; do
   L) list_proxies "long" ;;
   v) VERBOSE=1 ;;
   D) DISP=$OPTARG ;;
+  g) XY=$OPTARG ;;
+  W) HIDEWMD="-D" ;;
   *) usage; exit 1;;
  esac
 done
@@ -156,7 +164,13 @@ then
 	then
 		fullscreen="-f -D"
 	else
-		SIZE="-g $(rdpgeometry)"
+		if [ "0" = "${XY:-0}" ]
+		then
+			SIZE="-g $(rdpgeometry)"
+		else
+			# clean up to remove non geometry text
+			SIZE="-g ${XY//[!0-9x]}"
+		fi
 	fi
 	
 elif [ -z "${APP##*vnc*}" ]
@@ -210,7 +224,7 @@ pcmd=${pcmd:-sleep 15}
 FX=${pcmd:+-Y}
 
 [[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}'"
-ssh ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}" 
+ssh ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep 10" 
 STATUS=$?
 
 if [ -n "${pcmd##*sleep*}" ]
@@ -228,7 +242,7 @@ then
 	     ;;
 	scp) echo "opening scp without host-checking to ${dest}" && DO_CMD="scp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:\"${FILE}\" ."
 	     ;;
-	rdp|rdesktop) DO_CMD="$RDP -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
+	rdp|rdesktop) DO_CMD="${RDP} ${RDPOPTS} ${HIDEWMD} -T rdesktop_to_${dest} -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
 	     ;;
 	vnc) DO_CMD="vncviewer ${fullscreen} -owncmap -depth 8 -encodings \"tight\" -compresslevel 9 -quality 3 localhost:${LPORT}"
 	     ;;
@@ -242,4 +256,3 @@ then
 else
 	do_exit 1 "unable to connect to ${phost}"
 fi
-
