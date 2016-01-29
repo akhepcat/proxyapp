@@ -41,6 +41,7 @@ usage() {
 	echo "        -L                list all available proxies"
 	echo "        -v                verbosely show the commands"
 	echo "        -W                hide window-manager decorations"
+	echo "        -S                RDP sound off"
 	echo "        destination       final destination host"
 	echo ""
 	echo "        will read from \$HOME/.proxies.cnf for preconfigured proxies based on destination match"
@@ -112,7 +113,7 @@ list_proxies() {
 
 [[ -r ${HOME}/.proxies.cnf ]] && . ${HOME}/.proxies.cnf
 
-while getopts ":u:p:U:P:flLvWD:g:" param; do
+while getopts ":u:p:U:P:flLvWDS:g:" param; do
  case $param in
   u) user=$OPTARG ;;
   U) puser="$TITLE $OPTARG" ;;
@@ -125,6 +126,7 @@ while getopts ":u:p:U:P:flLvWD:g:" param; do
   D) DISP=$OPTARG ;;
   g) XY=$OPTARG ;;
   W) HIDEWMD="-D" ;;
+  S) SOUND="-r sound:off" ;;
   *) usage; exit 1;;
  esac
 done
@@ -242,7 +244,7 @@ then
 	     ;;
 	scp) echo "opening scp without host-checking to ${dest}" && DO_CMD="scp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:\"${FILE}\" ."
 	     ;;
-	rdp|rdesktop) DO_CMD="${RDP} ${RDPOPTS} ${HIDEWMD} -T rdesktop_to_${dest} -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
+	rdp|rdesktop) DO_CMD="${RDP} ${RDPOPTS} ${SOUND} ${HIDEWMD} -T rdesktop_to_${dest} -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
 	     ;;
 	vnc) DO_CMD="vncviewer ${fullscreen} -owncmap -depth 8 -encodings \"tight\" -compresslevel 9 -quality 3 localhost:${LPORT}"
 	     ;;
