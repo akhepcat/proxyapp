@@ -113,7 +113,7 @@ list_proxies() {
 
 [[ -r ${HOME}/.proxies.cnf ]] && . ${HOME}/.proxies.cnf
 
-while getopts ":u:p:U:P:flLvWDS:g:" param; do
+while getopts ":u:p:U:P:flLvWDSg:" param; do
  case $param in
   u) user=$OPTARG ;;
   U) puser="$TITLE $OPTARG" ;;
