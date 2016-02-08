@@ -50,6 +50,14 @@ usage() {
 }
 
 list_proxies() {
+        case $APP in
+                sftp) APP=ssh
+                        ;;
+                ftp) APP=ssh
+                        ;;
+                scp) APP=ssh
+                        ;;
+        esac
 
 	[[ -z "${1//short}" ]] && FILTER=${APP} || FILTER="long"
 
