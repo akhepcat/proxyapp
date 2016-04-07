@@ -139,8 +139,28 @@ while getopts ":u:p:U:P:flLvWDSg:" param; do
  esac
 done
 
+RDEST="${!OPTIND}"
+FILE=${RDEST##*:}
+RDEST=${RDEST%%:*}
+LFILE="$*"
+LFILE="${LFILE%%* }"
+LFILE="${LFILE//$RDEST/}"
+LFILE="${LFILE// }"
+
+if [ -z "${RDEST}" ];
+then
+	echo "invalid/unknown destination"
+	usage
+	exit 1
+fi
+
+# it's okay if you're v4 or v6 only, as long as one works!
 MyINTv4=$(awk 'BEGIN { IGNORECASE=1 } /^[a-z0-9]+[ \t]+00000000/ { print $1 }' /proc/net/route)
-[[ -z "${MyINTv4}" ]] && do_exit 1 "No network connectivity"
+MyINTv6=$(awk 'BEGIN { IGNORECASE=1 } /^0+ 00 0+ 00/ && !/ffffffff/ { print $10 }' /proc/net/ipv6_route)
+if [ -z "${MyINTv4}" -a -z "${MyINTv6}" ]
+then
+	do_exit 1 "No network connectivity"
+fi
 
 if [ -z "${APP##*rdp*}" -o -z "${APP##*rdesktop*}" ]
 then
@@ -191,19 +211,6 @@ then
 else
 	SIZE=""
 	fullscreen=""
-fi
-
-RDEST="${!OPTIND}"
-FILE="$*"
-FILE="${FILE%%* }"
-FILE="${FILE//$RDEST/}"
-FILE="${FILE// }"
-
-if [ -z "${RDEST}" ];
-then
-	echo "invalid/unknown destination"
-	usage
-	exit 1
 fi
 
 for (( i = 1 ; i <= $IDX ; i++ ))
