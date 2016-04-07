@@ -222,6 +222,8 @@ then
 	rdpu=${RDPUSER[$i]}
 	vncu=${VNCUSER[$i]}
 	domain=${DOMAIN[$i]}
+	pport=${PPORT[$i]}		# port for the proxy host
+
 else
 	[[ -z "$user" ]] && do_exit 1 "remote user not specified"
 	[[ -z "$puser" ]] && do_exit 1 "proxy user not specified"
@@ -232,9 +234,10 @@ echo "STATUS: Building ${APP} Tunnel from ${MYHOST}:${LPORT} to ${user}@${dest}:
 
 pcmd=${pcmd:-sleep 15}
 FX=${pcmd:+-Y}
+pport=${pport:+-p$pport}
 
 [[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}'"
-ssh ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep 10" 
+ssh ${pport} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep 10" 
 STATUS=$?
 
 if [ -n "${pcmd##*sleep*}" ]
