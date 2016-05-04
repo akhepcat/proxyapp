@@ -229,6 +229,7 @@ then
 	rdpu=${RDPUSER[$i]}
 	vncu=${VNCUSER[$i]}
 	domain=${DOMAIN[$i]}
+	sleep=${SSHSLEEP[$i]}
 	pport=${PPORT[$i]}		# port for the proxy host
 
 else
@@ -239,18 +240,22 @@ fi
 
 echo "STATUS: Building ${APP} Tunnel from ${MYHOST}:${LPORT} to ${user}@${dest}:${RPORT} via ${puser}@${phost}..."
 
-pcmd=${pcmd:-sleep 15}
+sleep=${sleep:-10}
+pcmd=${pcmd:-sleep $sleep}
 FX=${pcmd:+-Y}
 pport=${pport:+-p$pport}
 
 [[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}'"
-ssh ${pport} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep 10" 
+ssh ${pport} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep $sleep" 
 STATUS=$?
+
+[[ 0 -ne $STATUS ]] && do_exit 1 "ssh failed"
 
 if [ -n "${pcmd##*sleep*}" ]
 then
 	#if we're chaining an SSH via $pcmd, we need to sleep a bit before the final hop
-	sleep 10
+	# but not so much that we exceed the first proxy.  Also, some networks are slow, so we wait longer.
+	sleep $((sleep / 3 * 2))
 fi
 
 if [ $? -eq 0 ]
