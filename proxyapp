@@ -4,7 +4,8 @@ PROG="${0##*/}"
 APP="${PROG//proxy}"  # we're called proxy[xxx]  or..
 APP="${PROG//lets}"  # we're called lets[xxx]  or
 
-TO="-o ConnectTimeout=15"
+#global, will be overridden by .proxies.cnf
+TIMEOUT=15
 
 MYHOST="$(uname -n)"
 
@@ -245,8 +246,14 @@ sleep=${sleep:-10}
 pcmd=${pcmd:-sleep $sleep}
 FX=${pcmd:+-Y}
 pport=${pport:+-p$pport}
-
-[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}'"
+if [ ${sleep} -gt ${TIMEOUT} ]
+then
+	TO="-o ConnectTimeout=${sleep}"
+else
+	TO="-o ConnectTimeout=${TIMEOUT}"
+fi
+ 
+[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${pport} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}; sleep ${sleep}'"
 ssh ${pport} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep $sleep" 
 STATUS=$?
 
