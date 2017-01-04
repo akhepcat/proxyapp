@@ -231,6 +231,7 @@ then
 	domain=${DOMAIN[$i]}
 	sleep=${SSHSLEEP[$i]}
 	pport=${PPORT[$i]}		# port for the proxy host
+	tports=${TPORTS[$i]}		# tunneled ports
 
 else
 	[[ -z "$user" ]] && do_exit 1 "remote user not specified"
@@ -261,7 +262,7 @@ fi
 if [ $? -eq 0 ]
 then
     case ${APP} in
-	ssh) echo "opening ssh without host-checking to ${dest}" && DO_CMD="ssh -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -E /dev/null -k -p ${LPORT} ${user}@localhost"
+	ssh) echo "opening ssh without host-checking to ${dest}" && DO_CMD="ssh -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -E /dev/null -k -p ${LPORT} ${tports} ${user}@localhost"
 	     ;;
 	ftp) echo "opening sftp without host-checking to ${dest}" && DO_CMD="sftp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost"
 	     ;;
