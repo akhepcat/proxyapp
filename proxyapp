@@ -42,6 +42,8 @@ usage() {
 	echo "        -L                list all available proxies"
 	echo "        -v                verbosely show the commands"
 	echo "        -W                hide window-manager decorations"
+	echo "        -G 	        allow global connect for non-local vnc/rdesktop viewing"
+	echo "        -d                disables auto run of viewer"
 	echo "        -S                RDP sound off"
 	echo "        destination       final destination host"
 	echo ""
@@ -122,7 +124,7 @@ list_proxies() {
 
 [[ -r ${HOME}/.proxies.cnf ]] && . ${HOME}/.proxies.cnf
 
-while getopts ":u:p:U:P:flLvWDSg:" param; do
+while getopts ":u:p:U:P:flLvWDdSGg:" param; do
  case $param in
   u) user=$OPTARG ;;
   U) puser="$TITLE $OPTARG" ;;
@@ -133,6 +135,8 @@ while getopts ":u:p:U:P:flLvWDSg:" param; do
   L) list_proxies "long" ;;
   v) VERBOSE=1 ;;
   D) DISP=$OPTARG ;;
+  G) GLOBAL=1 ;;
+  d) DONT=1 ;;
   g) XY=$OPTARG ;;
   W) HIDEWMD="-D" ;;
   S) SOUND="-r sound:off" ;;
@@ -253,8 +257,8 @@ else
 	TO="-o ConnectTimeout=${TIMEOUT}"
 fi
  
-[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${pport} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}; sleep ${sleep}'"
-ssh ${pport} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep $sleep" 
+[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${pport} ${GLOBAL:+-g} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}; sleep ${sleep}'"
+ssh ${pport} ${GLOBAL:+-g} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep $sleep" 
 STATUS=$?
 
 [[ 0 -ne $STATUS ]] && do_exit 1 "ssh failed"
@@ -269,11 +273,11 @@ fi
 if [ $? -eq 0 ]
 then
     case ${APP} in
-	ssh) echo "opening ssh without host-checking to ${dest}" && DO_CMD="ssh -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -E /dev/null -k -p ${LPORT} ${tports} ${user}@localhost"
+	ssh) echo "opening ssh without host-checking to ${dest}" && DO_CMD="ssh ${GLOBAL:+-g} -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -E /dev/null -k -p ${LPORT} ${tports} ${user}@localhost"
 	     ;;
-	ftp) echo "opening sftp without host-checking to ${dest}" && DO_CMD="sftp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost"
+	ftp) echo "opening sftp without host-checking to ${dest}" && DO_CMD="sftp ${GLOBAL:+-g} -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost"
 	     ;;
-	scp) echo "opening scp without host-checking to ${dest}" && DO_CMD="scp -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:\"${FILE}\" ."
+	scp) echo "opening scp without host-checking to ${dest}" && DO_CMD="scp ${GLOBAL:+-g} -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:\"${FILE}\" ."
 	     ;;
 	rdp|rdesktop) DO_CMD="${RDP} ${RDPOPTS} ${SOUND} ${HIDEWMD} -T rdesktop_to_${dest} -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
 	     ;;
@@ -283,8 +287,13 @@ then
 	     ;;
     esac
 
-    [[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ${DO_CMD}"
-    $DO_CMD
+    if [ ${DONT:-0} -eq 0 ]
+    then
+	[[ ${VERBOSE:-0} -eq 1 ]] && echo "${PROG}: ${DO_CMD}"
+	$DO_CMD
+    else
+    	echo "$sleep seconds to run remote version of $DO_CMD"
+    fi
 
 else
 	do_exit 1 "unable to connect to ${phost}"
