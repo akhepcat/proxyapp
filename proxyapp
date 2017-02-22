@@ -144,13 +144,13 @@ while getopts ":u:p:U:P:flLvWDdSGg:" param; do
  esac
 done
 
-RDEST="${!OPTIND}"
+RDEST=${!OPTIND}
 FILE=${RDEST##*:}
 RDEST=${RDEST%%:*}
-LFILE="$*"
-LFILE="${LFILE%%* }"
-LFILE="${LFILE//$RDEST/}"
-LFILE="${LFILE// }"
+LFILE=$*
+LFILE=${LFILE%%* }
+LFILE=${LFILE//$RDEST/}
+LFILE=${LFILE// }
 
 if [ -z "${RDEST}" ];
 then
@@ -277,7 +277,7 @@ then
 	     ;;
 	ftp) echo "opening sftp without host-checking to ${dest}" && DO_CMD="sftp ${GLOBAL:+-g} -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost"
 	     ;;
-	scp) echo "opening scp without host-checking to ${dest}" && DO_CMD="scp ${GLOBAL:+-g} -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:\"${FILE}\" ."
+	scp) echo "opening scp without host-checking to ${dest}" && DO_CMD="scp ${GLOBAL:+-g} -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:${FILE} ."
 	     ;;
 	rdp|rdesktop) DO_CMD="${RDP} ${RDPOPTS} ${SOUND} ${HIDEWMD} -T rdesktop_to_${dest} -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
 	     ;;
