@@ -1,0 +1,55 @@
+#!/bin/bash
+heads=$(xdpyinfo -ext all 2>&1 | grep 'head' | awk '{print $2}' | wc -l )
+physx=0
+physy=0
+
+if [ -n "$*" ]
+then
+        fullscreen="-f"
+else
+        fullscreen=""
+fi
+
+if [ ${heads} -gt 1 ]
+then
+#dimensions:    1920x2280 pixels (506x601 millimeters)
+#head #0: 1920x1080 @ 0,1200
+#head #1: 1920x1200 @ 0,0
+        myheads=${heads}
+        while test ${myheads} -gt 0
+        do
+                physical=$( xdpyinfo -ext all 2>&1 | grep "head #$((myheads - 1))" | awk '{print $3}')
+                tmpy=${physical##*x}
+                tmpx=${physical%%x*}
+                if [ ${tmpy:-0} -gt ${physy:-0} ]
+                then
+                        physy=${tmpy}
+                fi
+                if [ ${tmpx:-0} -gt ${physx:-0} ]
+                then
+                        physx=${tmpx}
+                fi
+                myheads=$((myheads - 1))
+        done
+        physical="${physx}x${physy}"
+
+else
+#dimensions:    1920x1080 pixels
+#head #0: 1920x1080 @ 0,0
+        physical=$(xdpyinfo -ext all 2>&1 | grep 'dimensions' | awk '{print $2}')
+        physy=${physical##*x}
+        physx=${physical%%x*}
+fi
+                      
+
+if [ -z "${fullscreen}" ];
+then
+        newy=$((physy - 100))
+        x=$((physx / 8))
+        newx=$((x * 7))
+        SIZE=${newx}x${newy}
+else
+        SIZE=${physx}x${physy}
+fi
+
+echo "${SIZE}"
