@@ -273,8 +273,9 @@ then
 	fi
 
 else
+	SOCK=$(mktemp --dry-run -t ssh.sock.XXXXXXXX)
 	[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${GLOBAL:+-g} ${TO} ${FX} -f ${tports} -J ${puser}@${phost}  ${user}@${dest} 'sleep ${sleep}'"
-	ssh -M -S my-ctrl-socket -fnNT -o ExitOnForwardFailure=yes ${GLOBAL:+-g} ${TO} ${FX} ${tports} ${TO} -J ${puser}@${phost} ${user}@${dest}
+	ssh -M -S ${SOCK} -fnNT -o ExitOnForwardFailure=yes ${GLOBAL:+-g} ${TO} ${FX} ${tports} ${TO} -J ${puser}@${phost} ${user}@${dest}
 	STATUS=$?
 
 fi
@@ -301,9 +302,9 @@ then
 	[[ ${VERBOSE:-0} -eq 1 ]] && echo "${PROG}: ${DO_CMD}"
 	$DO_CMD
 	
-	if [ -n "$(ssh -S my-ctrl-socket -O check ${user}@${dest} 2>/dev/null )" ];
+	if [ -n "${SOCK}" -a -n "$(ssh -S ${SOCK} -O check ${user}@${dest} 2>/dev/null )" ];
 	then
-		ssh -S my-ctrl-socket -O exit ${user}@${dest}
+		ssh -S ${SOCK} -O exit ${user}@${dest}
 	fi
     else
     	echo "$sleep seconds to run remote version of $DO_CMD"
