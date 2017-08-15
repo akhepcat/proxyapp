@@ -246,6 +246,8 @@ fi
 
 echo "STATUS: Building ${APP} Tunnel from ${MYHOST}:${LPORT} to ${user}@${dest}:${RPORT} via ${puser}@${phost}..."
 
+vssh=$(ssh -V 2>&1 | sed 's/OpenSSH_\([0-9.]*\)\([p0-9]\)* .*/\1/gi; s/\.//g; s/\(..\).*/\1/g;')
+
 sleep=${sleep:-10}
 pcmd=${pcmd:-sleep $sleep}
 FX=${pcmd:+-Y}
@@ -256,21 +258,28 @@ then
 else
 	TO="-o ConnectTimeout=${TIMEOUT}"
 fi
- 
-[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${pport} ${GLOBAL:+-g} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}; sleep ${sleep}'"
-ssh ${pport} ${GLOBAL:+-g} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep $sleep" 
-STATUS=$?
 
-[[ 0 -ne $STATUS ]] && do_exit 1 "ssh failed"
+if [ ${vssh:-60} -lt 74 ]
+then 
+	[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${pport} ${GLOBAL:+-g} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}; sleep ${sleep}'"
+	ssh ${pport} ${GLOBAL:+-g} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep $sleep" 
+	STATUS=$?
 
-if [ -n "${pcmd##*sleep*}" ]
-then
-	#if we're chaining an SSH via $pcmd, we need to sleep a bit before the final hop
-	# but not so much that we exceed the first proxy.  Also, some networks are slow, so we wait longer.
-	sleep $((sleep / 3 * 2))
+	if [ -n "${pcmd##*sleep*}" ]
+	then
+		#if we're chaining an SSH via $pcmd, we need to sleep a bit before the final hop
+		# but not so much that we exceed the first proxy.  Also, some networks are slow, so we wait longer.
+		sleep $((sleep / 3 * 2))
+	fi
+
+else
+	[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${GLOBAL:+-g} ${TO} ${FX} -f ${tports} -J ${puser}@${phost}  ${user}@${dest} 'sleep ${sleep}'"
+	ssh -M -S my-ctrl-socket -fnNT -o ExitOnForwardFailure=yes ${GLOBAL:+-g} ${TO} ${FX} ${tports} ${TO} -J ${puser}@${phost} ${user}@${dest}
+	STATUS=$?
+
 fi
 
-if [ $? -eq 0 ]
+if [ ${STATUS} -eq 0 ]
 then
     case ${APP} in
 	ssh) echo "opening ssh without host-checking to ${dest}" && DO_CMD="ssh ${GLOBAL:+-g} -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -E /dev/null -k -p ${LPORT} ${tports} ${user}@localhost"
@@ -279,7 +288,7 @@ then
 	     ;;
 	scp) echo "opening scp without host-checking to ${dest}" && DO_CMD="scp ${GLOBAL:+-g} -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:${FILE} ."
 	     ;;
-	rdp|rdesktop) DO_CMD="${RDP} ${RDPOPTS} ${SOUND} ${HIDEWMD} -T rdesktop_to_${dest} -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
+	rdp|rdesktop) DO_CMD="${RDP} ${RDPOPTS} ${SOUND} ${HIDEWMD} -T rdp_to_${dest} -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
 	     ;;
 	vnc) DO_CMD="vncviewer ${fullscreen} -owncmap -depth 8 -encodings \"tight\" -compresslevel 9 -quality 3 localhost:${LPORT}"
 	     ;;
@@ -291,6 +300,11 @@ then
     then
 	[[ ${VERBOSE:-0} -eq 1 ]] && echo "${PROG}: ${DO_CMD}"
 	$DO_CMD
+	
+	if [ -n "$(ssh -S my-ctrl-socket -O check ${user}@${dest} 2>/dev/null )" ];
+	then
+		ssh -S my-ctrl-socket -O exit ${user}@${dest}
+	fi
     else
     	echo "$sleep seconds to run remote version of $DO_CMD"
     fi
