@@ -302,7 +302,7 @@ then
 	[[ ${VERBOSE:-0} -eq 1 ]] && echo "${PROG}: ${DO_CMD}"
 	$DO_CMD
 	
-	if [ -n "${SOCK}" -a -n "$(ssh -S ${SOCK} -O check ${user}@${dest} 2>/dev/null )" ];
+	if [ -n "${SOCK}" -a -n "$(ssh -S ${SOCK} -O check ${user}@${dest} 2>&1 | grep running )" ];
 	then
 		ssh -S ${SOCK} -O exit ${user}@${dest}
 	fi
