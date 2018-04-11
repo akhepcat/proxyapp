@@ -3,11 +3,19 @@ heads=$(xdpyinfo -ext all 2>&1 | grep 'head' | awk '{print $2}' | wc -l )
 physx=0
 physy=0
 
-if [ -n "$*" ]
+if [ -z "${1}" ]
+then
+        fullscreen=""
+
+elif [ -z "${1##*-f*}" ]
 then
         fullscreen="-f"
-else
-        fullscreen=""
+
+elif [ -z "${1##*-m*}" ]
+then
+	#semi-full-screen with menubar, works around multi-monitor
+	#which normal full-screen would eat both
+	menubar=1
 fi
 
 if [ ${heads} -gt 1 ]
@@ -42,13 +50,17 @@ else
 fi
                       
 
-if [ -z "${fullscreen}" ];
+if [ -z "${fullscreen}" -a ${menubar:-0} -eq 0 ];
 then
         newy=$((physy - 100))
         x=$((physx / 8))
         newx=$((x * 7))
         SIZE=${newx}x${newy}
 else
+	if [ ${menubar:-0} -eq 1 ];
+	then
+		physy=$(( physy - 80 ))
+	fi
         SIZE=${physx}x${physy}
 fi
 
