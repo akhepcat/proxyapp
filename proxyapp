@@ -176,7 +176,6 @@ then
 	RDP=${RDP:-$RDPV}
 	RDP=${RDP:-echo rdp-missing}
 	APP="rdp"
-
 elif [ -z "${APP##*vnc*}" ]
 then
 	RPORT=$((5900 + ${DISP:-0}))
@@ -230,6 +229,7 @@ then
 	puser=${PUSER[$i]}
 	phost=${PHOST[$i]}
 	dest=${DEST[$i]}
+	rdpdest=${RDPDEST[$i]}
 	pcmd=${PCMD[$i]}
 	rdpu=${RDPUSER[$i]}
 	vncu=${VNCUSER[$i]}
@@ -259,10 +259,12 @@ else
 	TO="-o ConnectTimeout=${TIMEOUT}"
 fi
 
+[[ "${APP}" = "rdp" ]] && RDPTUN="-L${LPORT}:${rdpdest:-$dest}:${RPORT}"
+
 if [ ${vssh:-60} -lt 74 ]
 then 
-	[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${pport} ${GLOBAL:+-g} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}; sleep ${sleep}'"
-	ssh ${pport} ${GLOBAL:+-g} ${TO} ${FX} -f -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep $sleep" 
+	[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${pport} ${GLOBAL:+-g} ${TO} ${FX} -f ${RDPTUN} -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} '${pcmd}; sleep ${sleep}'"
+	ssh ${pport} ${GLOBAL:+-g} ${TO} ${FX} -f ${RDPTUN} -L ${LPORT}:${dest}:${RPORT} ${puser}@${phost} "${pcmd}; sleep $sleep" 
 	STATUS=$?
 
 	if [ -n "${pcmd##*sleep*}" ]
@@ -280,8 +282,8 @@ else
 	else
 
 		SOCK=$(mktemp --dry-run -t ssh.sock.XXXXXXXX)
-		[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh ${GLOBAL:+-g} ${TO} ${FX} -f ${tports} -J ${puser}@${phost}  ${user}@${dest} 'sleep ${sleep}'"
-		ssh -M -S ${SOCK} -fnNT -o ExitOnForwardFailure=yes ${GLOBAL:+-g} ${FX} ${tports} ${TO} -J ${puser}@${phost} ${user}@${dest}
+		[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh -M -S ${SOCK} -fnNT -o ExitOnForwardFailure=yes ${GLOBAL:+-g} ${TO} ${FX} ${RDPTUN} ${tports} -J ${puser}@${phost}  ${user}@${dest} 'sleep ${sleep}'"
+		ssh -M -S ${SOCK} -fnNT -o ExitOnForwardFailure=yes ${GLOBAL:+-g} ${FX} ${RDPTUN} ${tports} ${TO} -J ${puser}@${phost} ${user}@${dest}
 		STATUS=$?
 	fi
 fi
