@@ -1,14 +1,24 @@
 #!/bin/bash
-
-BASE=${1:-5900}
+PROG="${0##*/}"
 INCR=0
+
+ARG=$1
+if [ "${ARG}" = "-h" -o "${ARG}" = "--help" ]
+then
+	echo "${PROG} [start-port]   - defaults to 5900"
+	exit 1
+else
+	#Only allow digits
+	ARG=${ARG//[!0-9]/}
+fi
+BASE=${ARG:-5900}
 
 while true
 do
 	PORT=$((BASE + INCR))
 	
 	ACT1=$(lsof -i -n -P | grep -E ":${PORT} " | cut -f 2 -d: | cut -f 1 -d- )
-	ACT2=$(for i in $(awk '{print $2}' /proc/net/tcp | cut -f 2 -d:); do perl -e "print hex \"$i\",\"\\n\";"; done | grep ^${PORT})
+	ACT2=$(for i in $(awk '{print $2}' /proc/net/tcp | cut -f 2 -d:); do perl -e "print hex \"$i\",\"\\n\";"; done | grep -w ^${PORT})
 
 	if [ -z "${ACT1}" -a -z "${ACT2}" ]
 	then
@@ -17,4 +27,5 @@ do
 	fi
 	
 	INCR=$((INCR + 1))
+#	sleep 1
 done
