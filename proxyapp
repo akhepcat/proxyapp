@@ -275,15 +275,23 @@ then
 	fi
 
 else
+	if [ -n "${phost}" ]
+	then
+		JUMP="-J ${puser}@${phost}"
+	else
+		JUMP=""
+	fi
+
 	if [ "${APP}" = "ssh" ]
 	then
-		ssh ${GLOBAL:+-g} ${tports} ${TO} -J ${puser}@${phost} ${user}@${dest}
+		ssh ${GLOBAL:+-g} ${tports} ${TO} ${JUMP} ${user}@${dest}
 		do_exit 0
 	else
 
 		SOCK=$(mktemp --dry-run -t ssh.sock.XXXXXXXX)
-		[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh -M -S ${SOCK} -fnNT -o ExitOnForwardFailure=yes ${GLOBAL:+-g} ${TO} ${FX} ${RDPTUN} ${tports} -J ${puser}@${phost}  ${user}@${dest} 'sleep ${sleep}'"
-		ssh -M -S ${SOCK} -fnNT -o ExitOnForwardFailure=yes ${GLOBAL:+-g} ${FX} ${RDPTUN} ${tports} ${TO} -J ${puser}@${phost} ${user}@${dest}
+		[[ ${VERBOSE:0} -eq 1 ]] && echo "${PROG}: ssh -M -S ${SOCK} -fnNT -o ExitOnForwardFailure=yes ${GLOBAL:+-g} ${FX} ${tports} ${RDPTUN} ${JUMP} ${user}@${dest} 'sleep ${sleep}'"
+		ssh -M -S ${SOCK} -fnNT -o ExitOnForwardFailure=yes ${GLOBAL:+-g} ${FX} ${tports} ${RDPTUN} ${TO} ${JUMP} ${user}@${dest}
+
 		STATUS=$?
 	fi
 fi
