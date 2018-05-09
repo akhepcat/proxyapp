@@ -260,6 +260,7 @@ else
 fi
 
 [[ "${APP}" = "rdp" ]] && RDPTUN="-L${LPORT}:${rdpdest:-$dest}:${RPORT}"
+[[ -z "${APP##*ftp*}" ]] && RDPTUN="-L${LPORT}:${dest}:${RPORT}"
 
 if [ ${vssh:-60} -lt 74 ]
 then 
