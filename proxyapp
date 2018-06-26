@@ -232,6 +232,10 @@ then
 	rdpdest=${RDPDEST[$i]}
 	pcmd=${PCMD[$i]}
 	rdpu=${RDPUSER[$i]}
+	rdpcmd=${RDPCMD[$i]}
+	rdpport=${RDPPORT[$i]}
+	vncport=${VNCPORT[$i]}
+	vncdest=${VNCDEST[$i]}
 	vncu=${VNCUSER[$i]}
 	domain=${DOMAIN[$i]}
 	sleep=${SSHSLEEP[$i]}
@@ -243,8 +247,6 @@ else
 	[[ -z "$puser" ]] && do_exit 1 "proxy user not specified"
 	[[ -z "$phost" ]] && do_exit 1 "proxy host not specified"
 fi
-
-echo "STATUS: Building ${APP} Tunnel from ${MYHOST}:${LPORT} to ${user}@${dest}:${RPORT} via ${puser}@${phost}..."
 
 vssh=$(ssh -V 2>&1 | sed 's/OpenSSH_\([0-9.]*\)\([p0-9]\)* .*/\1/gi; s/\.//g; s/\(..\).*/\1/g;')
 
@@ -259,8 +261,28 @@ else
 	TO="-o ConnectTimeout=${TIMEOUT}"
 fi
 
-[[ "${APP}" = "rdp" ]] && RDPTUN="-L${LPORT}:${rdpdest:-$dest}:${RPORT}"
+
+if [ "${APP}" = "rdp" ]; then
+	if [ -n "${rdpport}" ];
+	then
+		RPORT=${rdpport}
+		LPORT=$(portfind ${RPORT})
+	fi
+	RDPTUN="-L${LPORT}:${rdpdest:-$dest}:${RPORT}"
+fi
+
+if [ "${APP}" = "vnc" ]; then
+	if [ -n "${vncport}" ];
+	then
+		RPORT=${vncport}
+		LPORT=$(portfind ${RPORT})
+	fi
+	RDPTUN="-L${LPORT}:${vncdest:-$dest}:${RPORT}"
+fi
+
 [[ -z "${APP##*ftp*}" ]] && RDPTUN="-L${LPORT}:${dest}:${RPORT}"
+
+echo "STATUS: Building ${APP} Tunnel from ${MYHOST}:${LPORT} to ${user}@${dest}:${RPORT} via ${puser}@${phost}..."
 
 if [ ${vssh:-60} -lt 74 ]
 then 
@@ -306,7 +328,11 @@ then
 	     ;;
 	scp) echo "opening scp without host-checking to ${dest}" && DO_CMD="scp ${GLOBAL:+-g} -o StrictHostKeyChecking=false -o UserKnownHostsFile=/dev/null -oPort=${LPORT} ${user}@localhost:${FILE} ."
 	     ;;
-	rdp|rdesktop) DO_CMD="${RDP} ${RDPOPTS} ${SOUND} ${HIDEWMD} -T rdp_to_${dest} -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
+	rdp|rdesktop)   if [ -z "${rdpcmd##*xfreerdp*}" ]; then
+				DO_CMD="xfreerdp /u:${rdpu} /d:${domain} ${SOUND:+/sound:sys:alsa} /t:rdp_to_${dest} /v:localhost:${LPORT} ${fullscreen:+/f}"
+			else
+				DO_CMD="${RDP} ${RDPOPTS} ${SOUND} ${HIDEWMD} -T rdp_to_${dest} -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
+			fi
 	     ;;
 	vnc) DO_CMD="vncviewer ${fullscreen} -owncmap -depth 8 -encodings \"tight\" -compresslevel 9 -quality 3 localhost:${LPORT}"
 	     ;;
