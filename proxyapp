@@ -2,7 +2,7 @@
 #########################################################
 PROG="${0##*/}"
 APP="${PROG//proxy}"  # we're called proxy[xxx]  or..
-APP="${PROG//lets}"  # we're called lets[xxx]  or
+APP="${APP//lets}"  # we're called lets[xxx]  or
 
 #global, will be overridden by .proxies.cnf
 TIMEOUT=15
@@ -334,7 +334,7 @@ then
 				DO_CMD="${RDP} ${RDPOPTS} ${SOUND} ${HIDEWMD} -T rdp_to_${dest} -x 1 -z ${fullscreen} ${SIZE} -u ${rdpu} -d ${domain}  localhost:${LPORT}"
 			fi
 	     ;;
-	vnc) DO_CMD="vncviewer ${fullscreen} -owncmap -depth 8 -encodings \"tight\" -compresslevel 9 -quality 3 localhost:${LPORT}"
+	vnc) DO_CMD="vncviewer ${fullscreen} -owncmap -depth 8 -encodings tight -compresslevel 9 -quality 3 localhost:${LPORT}"
 	     ;;
 	*) do_exit 1 "unsupported proxied application \"${APP}\" "
 	     ;;
